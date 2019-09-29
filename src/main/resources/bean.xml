@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!-- 开启注解扫描 -->
+    <!-- use-default-filters 使用默认的过滤规则，当时用include-filter时应该将该属性置成false -->
+    <!--<context:component-scan use-default-filters="false" base-package="com.zhengguoqiang.bean">-->
+        <!--<context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>-->
+    <!--</context:component-scan>-->
+
+    <bean id="person" class="com.zhengguoqiang.bean.Person">
+        <property name="name" value="zhangsan"/>
+        <property name="age" value="18"/>
+    </bean>
+
+</beans>
