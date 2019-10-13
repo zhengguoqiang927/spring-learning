@@ -1,5 +1,7 @@
-package com.zhengguoqiang.bean;
+package com.zhengguoqiang.config;
 
+import com.zhengguoqiang.bean.MyTypeFilter;
+import com.zhengguoqiang.bean.Person;
 import com.zhengguoqiang.service.BookService;
 import org.springframework.context.annotation.*;
 import org.springframework.stereotype.Controller;
@@ -38,6 +40,6 @@ public class SpringConfig {
     //注入容器的bean类型就是返回值类型，id默认为方法名，也可通过bean注解value属性改id名称
     @Bean("person01")
     public Person getPerson(){
-        return new Person("lisi",20);
+        return new Person("lisi",20,"xxx");
     }
 }
