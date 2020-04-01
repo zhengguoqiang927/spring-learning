@@ -54,10 +54,10 @@ public class SpringConfigAutowired {
         return bookDao;
     }
 
-    @Bean
-    public Boss boss(Car car){
+    /*@Bean
+    public Boss boss(@Autowired Car car){
         Boss boss = new Boss();
         boss.setCar(car);
         return boss;
-    }
+    }*/
 }

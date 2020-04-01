@@ -6,16 +6,18 @@ import org.springframework.stereotype.Component;
 /**
  * @author zhengguoqiang
  */
-//@Component
+@Component
 public class Boss {
 
     private Car car;
 
     public Boss() {
+        System.out.println("boss...无参构造");
     }
 
 //    @Autowired
     public Boss(Car car) {
+        System.out.println("boss...有参构造");
         this.car = car;
     }
 
@@ -23,8 +25,9 @@ public class Boss {
         return car;
     }
 
-//    @Autowired
+    @Autowired
     public void setCar(Car car) {
+        System.out.println("boss...setter方法");
         this.car = car;
     }
 
