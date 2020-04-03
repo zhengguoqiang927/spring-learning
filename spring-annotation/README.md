@@ -373,6 +373,39 @@ ApplicationContextAware=>ApplicationContextAwareProcessor
 
 ## AOP
 
+指在程序运行期间动态的将某段代码切入到指定方法指定位置运行的编程模式
+
+### 核心概念
+
+
+
+### 搭建过程
+
+以MathCalculator类运行的过程中打印日志为例：
+
+1. 导入Spring AOP依赖spring-aspects
+2. 定义一个业务逻辑类MathCalculator
+3. 定义一个日志切面类LogAspect，并创建通知方法及切入点
+   1. 前置通知@Before：在目标方法之前执行
+   2. 后置通知@After：在目标方法之后执行
+   3. 返回通知@AfterReturning：在目标方法正常返回之后执行
+   4. 异常通知@AfterThrowing：在目标方法出现异常之后执行
+   5. 环绕通知@Around：动态代理，手动推进目标方法执行（joinPoint.procced()）
+4. 给切面类的目标方法标注何时何地运行，也就是加上3中提到的通知注解和切入点注解
+5. 将切面类和业务逻辑类注册到容器中
+6. 告诉Spring哪个是切面类，即在切面类上加@Aspect注解
+7. 配置类中加@EnableAspectJAutoProxy注解，启动基于注解的AOP模式
+
+简化一下：
+
+1. 定义切面类和业务逻辑类，并用@Aspect注解标注哪个是切面类
+2. 切面类的方法上标注通知注解@Before及切入点注解@Pointcut，告诉Spring何时何地执行通知方法
+3. 开启基于注解的AOP模式，配置类加@EnableAspectJAutoProxy
+
+### 原理
+
+
+
 
 
 ​		
