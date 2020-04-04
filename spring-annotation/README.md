@@ -373,11 +373,33 @@ ApplicationContextAware=>ApplicationContextAwareProcessor
 
 ## AOP
 
-指在程序运行期间动态的将某段代码切入到指定方法指定位置运行的编程模式
+**面向切面编程（Aspect-Oriented Programming）**,作为面向对象编程模式的一种补充，使得横切关注点可以在程序运行期间动态的应用到主业务逻辑中去，实现横切关注点与业务逻辑对象之间的解耦。而DI实现的应用对象之间的解耦。
+
+**横切关注点（cross-cutting concern）**就是散布于应用中多处的功能，比如日志、声明式事务、安全以及缓存等等。其可以被模块化为特殊的类，而这些类被成为**切面（aspect）**。
 
 ### 核心概念
 
+**Aspect（切面）**：模块化的横切关注点
 
+**Advice（通知）**：就是在特定的连接点处切面要采取的操作。通知与切入点表达式相关联，并在与切入点表达式匹配的连接点处运行。通知定义了切面要做什么以及何时（前后、返回、异常、环绕）做。
+
+- Before（前置通知）：在连接点之前执行通知
+- After（finally）（后置通知）：在连接点退出（无论正常返回还是抛出异常）之后执行通知
+- After returning（返回通知）：在连接点正常完成之后执行通知
+- After throwing（异常通知）：方法执行抛出异常时执行通知
+- Around（环绕通知）：在方法调用的前后执行通知
+
+**Join point（连接点）**：程序执行过程中的一个点，比如方法调用或者异常处理。Spring AOP只支持方法调用。
+
+**Pointcut（切入点）**：匹配连接点的谓词或表达式。告诉切面在"何处"执行通知,而通知告诉切面做什么以及"何时"做。
+
+Weaving（织入）：把切面应用到目标对象并创建新的代理对象的过程。织入时机分三种：
+
+- 编译期（compile time）
+- 类加载期（load time）
+- 运行期（runtime）：Spring AOP就是以这种方式织入切面的。
+
+![Spring AOP](https://raw.githubusercontent.com/zhengguoqiang927/Figure-bed/master/img/SpringAOP.png)
 
 ### 搭建过程
 
@@ -404,7 +426,209 @@ ApplicationContextAware=>ApplicationContextAwareProcessor
 
 ### 原理
 
+@EnableAspectJAutoProxy：启动AOP注解模式
 
+![Spring-EnableAspectJAutoProxy](https://raw.githubusercontent.com/zhengguoqiang927/Figure-bed/master/img/Spring-EnableAspectJAutoProxy.png)
+
+@Import(AspectJAutoProxyRegistrar.class)：通过实现ImportBeanDefinitionRegistrar接口向容器中导入组件。
+
+AspectJAutoProxyRegistrar类实现ImportBeanDefinitionRegistrar接口向容器中注册AnnotationAwareAspectJAutoProxyCreator组件，BeanName为org.springframework.aop.config.internalAutoProxyCreator
+
+主要研究AnnotationAwareAspectJAutoProxyCreator类，去掉与调试无关接口及相关类，得到如下类图
+
+![AnnotationAwareAspectJAutoProxyCreator](https://raw.githubusercontent.com/zhengguoqiang927/Figure-bed/master/img/AnnotationAwareAspectJAutoProxyCreator.png)
+
+```java
+//主要关注setBeanFactory、postProcessBeforeInitialization、postProcessAfterInitialization、postProcessBeforeInstantiation、postProcessAfterInstantiation这几个方法的实现及重写
+
+//AbstractAutoProxyCreator抽象类实现setBeanFactory、postProcessBeforeInstantiation、postProcessAfterInitialization
+AbstractAutoProxyCreator.setBeanFactory(BeanFactory)
+AbstractAutoProxyCreator.postProcessBeforeInstantiation(Class, String)
+AbstractAutoProxyCreator.postProcessAfterInitialization(Object, String)
+//AbstractAdvisorAutoProxyCreator重写了setBeanFactory方法
+AbstractAdvisorAutoProxyCreator.setBeanFactory(BeanFactory)
+AbstractAdvisorAutoProxyCreator.initBeanFactory(BeanFactory)
+//AnnotationAwareAspectJAutoProxyCreator重写了initBeanFactory方法
+AnnotationAwareAspectJAutoProxyCreator.initBeanFactory(BeanFactory)
+```
+
+#### Bean创建流程
+
+1. AbstractBeanFactory.getBean 
+
+```java
+@Override
+public <T> T getBean(String name, Class<T> requiredType) throws BeansException {
+    return doGetBean(name, requiredType, null, false);
+}
+```
+
+2. AbstractBeanFactory.doGetBean
+
+```java
+// Eagerly check singleton cache for manually registered singletons.
+Object sharedInstance = getSingleton(beanName);//优先从单实例缓存中获取，如果有则直接返回
+
+// Create bean instance.
+if (mbd.isSingleton()) {
+    sharedInstance = getSingleton(beanName, () -> {
+        try {
+            return createBean(beanName, mbd, args);//上面缓存中没有，才会进行创建
+        }
+        catch (BeansException ex) {
+            // Explicitly remove instance from singleton cache: It might have been put there
+            // eagerly by the creation process, to allow for circular reference resolution.
+            // Also remove any beans that received a temporary reference to the bean.
+            destroySingleton(beanName);
+            throw ex;
+        }
+    });
+    bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
+}
+```
+
+3. AbstractAutowireCapableBeanFactory.createBean
+
+```java
+//1
+// Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
+Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
+if (bean != null) {
+    return bean;
+}
+
+//2
+//resolveBeforeInstantiation方法实现
+@Nullable
+protected Object resolveBeforeInstantiation(String beanName, RootBeanDefinition mbd) {
+    Object bean = null;
+    if (!Boolean.FALSE.equals(mbd.beforeInstantiationResolved)) {
+        // Make sure bean class is actually resolved at this point.
+        if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
+            Class<?> targetType = determineTargetType(beanName, mbd);
+            if (targetType != null) {
+                bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);//Bean实例化之前执行
+                if (bean != null) {
+                    bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);
+                }
+            }
+        }
+        mbd.beforeInstantiationResolved = (bean != null);
+    }
+    return bean;
+}
+
+//3. 如果前面没有创建出来对象，才会执行doCreateBean
+try {
+    Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+    if (logger.isTraceEnabled()) {
+        logger.trace("Finished creating instance of bean '" + beanName + "'");
+    }
+    return beanInstance;
+}
+```
+
+4. AbstractAutowireCapableBeanFactory.doCreateBean
+
+```java
+if (instanceWrapper == null) {
+    instanceWrapper = createBeanInstance(beanName, mbd, args);//创建Bean实例
+}
+
+// Initialize the bean instance.
+Object exposedObject = bean;
+try {
+    populateBean(beanName, mbd, instanceWrapper);//Bean属性赋值
+    exposedObject = initializeBean(beanName, exposedObject, mbd);//Bean初始化
+}
+```
+
+5. AbstractAutowireCapableBeanFactory.initializeBean
+
+```java
+//1.回调Aware方法，这里的Aware只限BeanNameAware、BeanClassLoaderAware、BeanFactoryAware
+invokeAwareMethods(beanName, bean);
+
+//2.执行BeanPostProcessor的postProcessBeforeInitialization方法，初始化前逻辑处理，比如ApplicationContextAwareProcessor向业务bean中注入ApplicationContext容器
+Object wrappedBean = bean;
+if (mbd == null || !mbd.isSynthetic()) {
+    wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
+}
+
+//3.自定义初始化
+try {
+    invokeInitMethods(beanName, wrappedBean, mbd);
+}
+
+//4.执行BeanPostProcessor的postProcessAfterInitialization方法，初始化后逻辑处理
+if (mbd == null || !mbd.isSynthetic()) {
+    wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
+}
+
+//5.返回创建好的Bean
+return wrappedBean;
+```
+
+简化后：
+
+1. getBean获取实例，调用doGetBean
+2. 判断单实例缓存中是否存在，如果不存在，进行createBean
+3. 判断BeanPostProcessor是否能创建出目标对象的代理对象，如果不能，进行doCreateBean
+4. createBeanInstance创建Bean实例
+5. populateBean(beanName, mbd, instanceWrapper)：Bean属性赋值
+6. initializeBean(beanName, exposedObject, mbd)：Bean初始化
+   1. invokeAwareMethods(beanName, bean)：处理Aware接口的方法回调
+   2. applyBeanPostProcessorsBeforeInitialization：初始化前逻辑处理
+   3. invokeInitMethods执行自定义初始化
+   4. applyBeanPostProcessorsAfterInitialization初始化后逻辑处理
+   5. Bean创建成功并返回
+7. 返回Bean实例
+
+
+
+BeanPostProcessor创建流程：
+
+1. 传入配置类，创建IOC容器
+
+```java
+AnnotationConfigApplicationContext applicationContext =
+        new AnnotationConfigApplicationContext(SpringConfigAOP.class);
+```
+
+2. 注册配置类，刷新容器
+
+```java
+register(componentClasses);
+refresh();
+```
+
+3. 注册BeanPostProcessor后置处理器用来拦截Bean的创建
+   1. 获取IOC容器中已经定义好的，且类型为BeanPostProcessor的BeanName
+   2. 遍历BeanName，并按照PriorityOrdered，Ordered，the rest分组
+   3. 优先注册实现PriorityOrdered接口的BeanPostProcessor
+   4. 再注册实现Ordered接口的BeanPostProcessor，AnnotationAwareAspectJAutoProxyCreator就是实现此接口的后置处理器
+   5. 最后注册其余的BeanPostProcessor
+   6. 注册BeanPostProcessor，根据BeanName得到RootBeanDefinition信息，生成BeanPostProcessor实例
+      1. 
+
+```java
+registerBeanPostProcessors(beanFactory);
+```
+
+​			获取IOC容器中已经定义好的，且类型为BeanPostProcessor的BeanName
+
+ 遍历BeanName，并按照PriorityOrdered，Ordered，the rest分组
+
+
+
+​	获取IOC容器中已经定义好的，且类型为BeanPostProcessor的BeanName
+
+1. 遍历BeanName，并按照PriorityOrdered，Ordered，the rest分组
+2. 优先注册实现PriorityOrdered接口的BeanPostProcessor
+
+```java
+registerBeanPostProcessors(beanFactory);
+```
 
 
 
