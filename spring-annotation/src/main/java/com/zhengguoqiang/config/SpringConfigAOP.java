@@ -86,13 +86,13 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  *                      1.后置处理器先尝试返回
  *                          [BeanPostProcessor是在Bean创建完成属性赋值完成之后的初始化前后调用的]
  *                          [InstantiationAwareBeanPostProcessor是在Bean创建之前尝试返回Bean实例的]
- *                          [AnnotationAwareAspectJAutoProxyCreator就是InstantiationAwareBeanPostProcessor,也就是在每个Bean实例创建之前都会执行postProcessBeforeInstantiation和postProcessAfterInstantiation]
+ *                          [AnnotationAwareAspectJAutoProxyCreator就是InstantiationAwareBeanPostProcessor,也就是在每个Bean实例创建之前都会执行postProcessBeforeInstantiation,
+ *                          来判断当前Bean是否需要增强]
  *                          先拿到所有后置处理器,如果是InstantiationAwareBeanPostProcessor,就执行postProcessBeforeInstantiation
  *                          bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);
  * 					        if (bean != null) {
  * 						        bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);
  *                          }
- *                          再来看AnnotationAwareAspectJAutoProxyCreator组件的postProcessBeforeInstantiation和postProcessAfterInstantiation方法怎么实现的
  *                  2.doCreateBean(beanName, mbdToUse, args):真正去创建一个Bean实例
  *
  *
@@ -100,11 +100,11 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  * 1.每一个Bean创建之前调用AbstractAutoProxyCreator.postProcessBeforeInstantiation
  *      重点关注业务逻辑类(MathCalculator)和切面类(LogAspect)的处理
  *      1.判断当前Bean是否在advisedBeans(保存所有需要增强的Bean)中
- *      2.判断当前Bean是否是基础类型的Advice,Pointcut,Advisor,AopInfrastructureBean或者是否是@Aspect注解标注过的切面(如果是表示该Bean是增强的Bean)
- *      3.是否需要跳过(如果是就表示该Bean是增强的Bean)
+ *      2.判断当前Bean是否是基础类型的Advice,Pointcut,Advisor,AopInfrastructureBean或者是否是@Aspect注解标注过的切面(如果是存入advisedBeans中,但value是false表示不需要增强：切面不需要增强,业务逻辑类才需要增强)
+ *      3.shouldSkip(beanClass, beanName)是否需要跳过(如果是就表示该Bean不需要增强)
  *          1.获取候选增强器(切面里的通知方法)[List<Advisor> candidateAdvisors]
- *              每一个封装的通知方法的增强器是InstantiationModelAwarePointcutAdvisor类型
  *              判断增强器里是否有AspectJPointcutAdvisor这个类型的,如果有则返回true
+ *              通常我们在SpringAOP里声明的增强器都是InstantiationModelAwarePointcutAdvisor类型
  *
  * 2.doCreateBean创建对象
  *      doCreateBean => initializeBean => applyBeanPostProcessorsAfterInitialization => 所有BeanPostProcessor的postProcessAfterInitialization方法 =>
@@ -112,12 +112,12 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  *      这个方法的返回是 return wrapIfNecessary(bean, beanName, cacheKey);//必要的情况下进行包装
  *      wrapIfNecessary(bean, beanName, cacheKey)
  *          1.获取当前Bean的所有增强器(通知方法)：Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
- *              1.找到所有候选的增强器(找哪些通知方法是需要切入到当前Bean方法的)
- *              2.获取能在bean使用的增强器
+ *              1.找到所有候选的增强器
+ *              2.获取能在bean使用的增强器(反射获取Bean的方法并与通知方法上定义的切入点进行匹配，如果匹配就返回)
  *              3.给增强器排序
  *          2.如果当前Bean需要增强,则将其保存到advisedBeans中,并创建对应的代理对象
- *              1.获取所有增强器(通知方法),并保存到代理工厂ProxyFactory中
- *              2.创建代理对象 Spring自动决定
+ *              1.创建代理工厂ProxyFactory,并填入相应信息advisor,targetsource等等
+ *              2.创建代理对象 Spring判断目标类（targetClass）是否是接口,如果是则创建JdkDynamicAopProxy动态代理否则创建ObjenesisCglibAopProxy动态代理
  *                  JdkDynamicAopProxy:JDK动态代理 基于接口
  *                  ObjenesisCglibAopProxy:Cglib动态代理 基于类
  *          3.如果Bean需要增强则返回增强后的代理对象,如果不需要则返回普通的Bean

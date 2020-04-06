@@ -9,6 +9,6 @@ public class SpringConfigAOPTest {
         AnnotationConfigApplicationContext applicationContext =
                 new AnnotationConfigApplicationContext(SpringConfigAOP.class);
         MathCalculator calculator = applicationContext.getBean(MathCalculator.class);
-        calculator.div(1, 0);
+        calculator.div(1, 1);
     }
 }
