@@ -1,6 +1,9 @@
 package com.zhengguoqiang.config;
 
 import com.zhengguoqiang.bean.Car;
+import com.zhengguoqiang.ext.Blue;
+import jdk.nashorn.internal.objects.annotations.Setter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -57,7 +60,7 @@ import org.springframework.context.annotation.Scope;
  *
  * @author zhengguoqiang
  */
-@ComponentScan("com.zhengguoqiang.bean")
+//@ComponentScan("com.zhengguoqiang.bean")
 @Configuration
 public class SpringConfigLifeCycle {
 
@@ -65,5 +68,10 @@ public class SpringConfigLifeCycle {
     @Bean(initMethod = "init",destroyMethod = "destroy")
     public Car car(){
         return new Car();
+    }
+
+    @Bean
+    public Blue blue(){
+        return new Blue();
     }
 }

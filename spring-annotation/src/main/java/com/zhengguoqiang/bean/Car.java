@@ -1,12 +1,18 @@
 package com.zhengguoqiang.bean;
 
+import com.zhengguoqiang.ext.Blue;
+import jdk.nashorn.internal.objects.annotations.Setter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
  * @author zhengguoqiang
  */
-@Component
+//@Component
 public class Car {
+
+    @Autowired
+    Blue blue;
 
     public Car() {
         System.out.println("car...constructor...");
