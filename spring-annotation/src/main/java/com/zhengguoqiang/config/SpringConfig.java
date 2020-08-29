@@ -23,11 +23,11 @@ import org.springframework.stereotype.Service;
 //FilterType.ASPECTJ：基于ASPECTJ表达式
 //FilterType.REGEX：基于正则表达式
 //FilterType.CUSTOM：自定义
-@ComponentScan(value = "com.zhengguoqiang",includeFilters = {
-        /*@ComponentScan.Filter(type = FilterType.ANNOTATION,classes = {Controller.class}),
-        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,classes = {BookService.class}),*/
-        @ComponentScan.Filter(type = FilterType.CUSTOM,classes = {MyTypeFilter.class})
-},useDefaultFilters = false)
+@ComponentScan(value = "com.zhengguoqiang.service",includeFilters = {
+//        @ComponentScan.Filter(type = FilterType.ANNOTATION,classes = {Controller.class}),
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,classes = {BookService.class}),
+//        @ComponentScan.Filter(type = FilterType.CUSTOM,classes = {MyTypeFilter.class})
+},useDefaultFilters = true)
 
 //同时指定多个包扫描规则
 /*@ComponentScans(value = {

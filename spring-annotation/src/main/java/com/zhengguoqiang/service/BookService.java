@@ -11,13 +11,13 @@ import javax.inject.Inject;
 /**
  * @author zhengguoqiang
  */
-@Service
+//@Service
 public class BookService {
 
-    @Qualifier("bookDao")
+//    @Qualifier("bookDao")
 //    @Autowired(required = false)
 //    @Resource(name = "bookDao2")
-    @Inject
+//    @Inject
     private BookDao bookDao;
 
     @Override

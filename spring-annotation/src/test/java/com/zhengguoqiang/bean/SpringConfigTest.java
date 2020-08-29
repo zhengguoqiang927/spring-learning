@@ -1,5 +1,6 @@
 package com.zhengguoqiang.bean;
 
+import com.zhengguoqiang.config.SpringConfig;
 import com.zhengguoqiang.config.SpringConfig2;
 import org.junit.Test;
 import org.springframework.context.ApplicationContext;
@@ -13,6 +14,16 @@ import java.util.Map;
  * @author zhengguoqiang
  */
 public class SpringConfigTest {
+
+    @Test
+    public void testUseDefaultFilter(){
+        ApplicationContext context = new AnnotationConfigApplicationContext(SpringConfig.class);
+        System.out.println("容器初始化完成...");
+        String[] beanDefinitionNames = context.getBeanDefinitionNames();
+        for (String name:beanDefinitionNames){
+            System.out.println(name);
+        }
+    }
 
     @Test
     public void testOne(){

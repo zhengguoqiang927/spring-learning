@@ -23,9 +23,7 @@ public class MacCondition implements Condition {
         BeanDefinitionRegistry registry = context.getRegistry();
 
         String property = environment.getProperty("os.name");
-        if (property.contains("Mac")){
-            return true;
-        }
-        return false;
+        assert property != null;
+        return property.contains("Mac");
     }
 }
